@@ -6,6 +6,11 @@ package frc.robot.subsystems;
 
 import com.NoULib.lib.NoUMotor;
 
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
+import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions;
+import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
@@ -16,12 +21,36 @@ public class DriveSubsystem extends SubsystemBase {
   private static final NoUMotor backLeft = new NoUMotor(1);
   private static final NoUMotor backRight = new NoUMotor(5);
 
+  private final MecanumDriveOdometry m_odometry;
+
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     frontLeft.setInverted(false);
     frontRight.setInverted(true);
     backLeft.setInverted(false);
     backRight.setInverted(false);
+
+    m_odometry = new MecanumDriveOdometry(Constants.DRIVE_KINEMATICS,
+      Rotation2d.fromDegrees(0.0), 
+      getWheelPositions());
+  }
+
+  public void drive2(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+    ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, Rotation2d.fromDegrees(45.0));
+    MecanumDriveWheelSpeeds wheelSpeeds = Constants.DRIVE_KINEMATICS.toWheelSpeeds(speeds);
+
+    frontLeft.set(wheelSpeeds.frontLeftMetersPerSecond);
+    frontRight.set(wheelSpeeds.frontRightMetersPerSecond);
+    backLeft.set(wheelSpeeds.rearLeftMetersPerSecond);
+    backRight.set(wheelSpeeds.rearRightMetersPerSecond);
+  }
+
+  public void updateOdometry() {
+    m_odometry.update(Rotation2d.fromDegrees(0.0), getWheelPositions());
+  }
+
+  public MecanumDriveWheelPositions getWheelPositions() {
+    return new MecanumDriveWheelPositions(frontLeft.get(), frontRight.get(), backLeft.get(), backRight.get());
   }
 
   public void drive(double xSpeed, double ySpeed, double rotation, boolean fieldOrient) {
@@ -133,24 +162,6 @@ public class DriveSubsystem extends SubsystemBase {
     frontRight.set(frs);
     backLeft.set(bls);
     backRight.set(brs);
-  }
-
-  public void drive2(double xSpeed, double ySpeed, double rotation, boolean fieldOrient) {
-    double Protate = rotation/4;
-    double stick_x = xSpeed * Math.sqrt(Math.pow(1-Math.abs(Protate), 2)/2);
-    double stick_y = ySpeed * Math.sqrt(Math.pow(1-Math.abs(Protate), 2)/2);
-    double theta = 0;
-    double Px = 0;
-    double Py = 0;
-
-    theta = Math.atan2(stick_y, stick_x) - (Math.PI / 2);
-    Px = Math.sqrt(Math.pow(stick_x, 2) + Math.pow(stick_y, 2)) * (Math.sin(theta + Math.PI /4));
-    Py = Math.sqrt(Math.pow(stick_x, 2) + Math.pow(stick_y, 2)) * (Math.sin(theta - Math.PI /4));
-
-    frontLeft.set(Py - Protate);
-    frontRight.set(Px - Protate);
-    backLeft.set(Py + Protate);
-    backRight.set(Px + Protate);
   }
 
   @Override
